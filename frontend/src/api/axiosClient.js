@@ -46,7 +46,7 @@ axiosClient.interceptors.response.use(
       try {
         // Lấy refreshToken từ nơi lưu trữ
         const response = await axios.post(
-          `${baseURL}/auth/refresh`,
+          `${axiosClient.defaults.baseURL}/auth/refresh`,
           {},
           { withCredentials: true }
         );
