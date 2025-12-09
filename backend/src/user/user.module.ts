@@ -24,5 +24,6 @@ import { User } from './user.entity';
   // (Mở rộng) exports:
   // - Nếu bạn muốn module khác (ví dụ AuthModule) sử dụng được UserService,
   // - bạn cần thêm dòng: exports: [UserService]
+  exports: [UserService],
 })
 export class UserModule {}

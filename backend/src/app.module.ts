@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user/user.entity';
 import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -47,6 +48,8 @@ import { UserModule } from './user/user.module';
         rejectUnauthorized: false, // Cho phép kết nối dù chứng chỉ SSL tự ký (thường dùng cho dev/free tier)
       },
     }),
+
+    AuthModule,
   ],
   controllers: [AppController], // Đăng ký Controller gốc
   providers: [AppService], // Đăng ký Service gốc

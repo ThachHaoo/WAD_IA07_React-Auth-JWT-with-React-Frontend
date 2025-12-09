@@ -24,6 +24,10 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
+  async findOneByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+  
   // Hàm xử lý đăng ký người dùng mới
   // Nhận vào DTO (Data Transfer Object) chứa email và password
   async register(registerUserDto: RegisterUserDto): Promise<User> {
