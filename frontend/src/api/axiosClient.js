@@ -39,6 +39,10 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    if (originalRequest.url.includes("/auth/login")) {
+      return Promise.reject(error);
+    }
+    
     // Nếu lỗi là 401 (Unauthorized) và request này chưa từng được retry
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; // Đánh dấu đã thử lại để tránh vòng lặp vô tận

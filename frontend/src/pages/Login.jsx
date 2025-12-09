@@ -59,8 +59,22 @@ export default function Login() {
       navigate("/");
     },
     onError: (error) => {
-      const msg = error.response?.data?.message || "Đăng nhập thất bại";
-      toast.error(msg);
+      // 1. Log ra xem cấu trúc lỗi là gì (để debug)
+      console.log("Lỗi đăng nhập:", error);
+
+      // 2. Lấy thông báo lỗi từ Backend gửi về
+      // NestJS thường trả về: { statusCode: 401, message: "Email hoặc mật khẩu không đúng", ... }
+      const serverMessage = error.response?.data?.message;
+
+      // 3. Nếu serverMessage là mảng (do class-validator trả về nhiều lỗi), lấy cái đầu tiên
+      const displayMessage = Array.isArray(serverMessage)
+        ? serverMessage[0]
+        : serverMessage || "Đăng nhập thất bại (Lỗi kết nối)";
+
+      // 4. Hiển thị Toast
+      toast.error(displayMessage, {
+        description: "Vui lòng kiểm tra lại thông tin.",
+      });
     },
   });
 
