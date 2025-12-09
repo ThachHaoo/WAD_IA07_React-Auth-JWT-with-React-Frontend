@@ -13,9 +13,8 @@ import { PublicRoute } from "@/components/PublicRoute";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 // Import và cấu hình TanStack Query (React Query) để quản lý state từ server
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-// Khởi tạo client cho React Query (quản lý cache, fetching data...)
-const queryClient = new QueryClient();
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./api/queryClient";
 
 function App() {
   // Lấy hàm logout từ store

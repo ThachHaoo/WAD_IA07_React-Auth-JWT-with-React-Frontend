@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import axiosClient from "../api/axiosClient";
+import { queryClient } from "../api/queryClient";
 
 export const useAuthStore = create((set) => ({
   // 1. Khởi tạo State: Kiểm tra token trong cả 2 kho
@@ -18,6 +19,9 @@ export const useAuthStore = create((set) => ({
       sessionStorage.setItem("refreshToken", refreshToken);
     }
 
+    queryClient.removeQueries();
+    queryClient.clear();
+    
     // Cập nhật State -> Giao diện tự đổi
     set({ isAuthenticated: true });
   },
