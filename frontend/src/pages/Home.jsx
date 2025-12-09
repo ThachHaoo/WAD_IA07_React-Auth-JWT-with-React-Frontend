@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useAuthStore } from "@/stores/useAuthStore";
 // Import các icon từ thư viện lucide-react
 import { LogOut, CheckCircle2, ShieldCheck } from "lucide-react";
 // Import các UI component (thường là từ Shadcn UI)
@@ -16,6 +17,7 @@ export default function Home() {
   // Hook dùng để điều hướng trang (tuy nhiên trong code này chưa thấy sử dụng trực tiếp)
   const navigate = useNavigate();
 
+  const logout = useAuthStore((state) => state.logout);
   // State quản lý trạng thái tải trang (loading) và dữ liệu người dùng
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState(null);
@@ -43,21 +45,15 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Hàm xử lý sự kiện đăng xuất
   const handleLogout = () => {
-    // Hiển thị thông báo đang đăng xuất
     toast.info("Đang đăng xuất...", {
       description: "Hẹn gặp lại bạn sớm!",
       duration: 2000,
     });
 
-    // Đợi 1 giây để người dùng đọc thông báo rồi mới thực hiện xóa token
     setTimeout(() => {
-      // Xóa token xác thực trong LocalStorage và SessionStorage
-      localStorage.removeItem("accessToken");
-      sessionStorage.removeItem("accessToken");
-      // Tải lại trang để reset toàn bộ trạng thái ứng dụng (thường sẽ dẫn về trang Login)
-      window.location.reload();
+      // 2. Gọi hàm logout của Zustand (Tự chuyển về Login, không cần reload)
+      logout();
     }, 1000);
   };
 

@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuthStore } from "@/stores/useAuthStore";
 // Import các trang (pages) của ứng dụng
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -17,9 +18,7 @@ function App() {
   // Kiểm tra xem người dùng đã đăng nhập chưa bằng cách tìm token trong LocalStorage hoặc SessionStorage.
   // Dấu "!!" dùng để ép kiểu giá trị tìm được về dạng boolean (true/false).
   // Ví dụ: nếu có chuỗi token -> true, nếu null/undefined -> false.
-  const isAuthenticated =
-    !!localStorage.getItem("accessToken") ||
-    !!sessionStorage.getItem("accessToken");
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return (
     // Bọc toàn bộ ứng dụng trong QueryClientProvider để các component con có thể sử dụng useQuery/useMutation

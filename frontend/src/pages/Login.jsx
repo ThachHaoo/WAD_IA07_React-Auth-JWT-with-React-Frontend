@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuthStore } from "@/stores/useAuthStore";
 // Import các quy tắc validate email/password từ file utils
 import { emailValidation, passwordValidation } from "../utils/validations";
 import { useMutation } from "@tanstack/react-query";
@@ -23,6 +24,8 @@ import { Spinner } from "@/components/ui/spinner";
 export default function Login() {
   // Hook dùng để điều hướng trang sau khi login thành công
   const navigate = useNavigate();
+
+  const login = useAuthStore((state) => state.login);
 
   // Khởi tạo useForm để quản lý form
   const {
@@ -49,23 +52,15 @@ export default function Login() {
       // Lấy token từ response trả về
       const { accessToken, refreshToken } = response.data;
 
-      // Logic lưu token (giống bài cũ nhưng dùng token thật)
-      if (isRemembered) {
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", refreshToken); // Lưu thêm cái này
-      } else {
-        sessionStorage.setItem("accessToken", accessToken);
-        sessionStorage.setItem("refreshToken", refreshToken); // Lưu thêm cái này
-      }
+      const isRemembered = watch("remember");
+
+      // 3. GỌI HÀM LOGIN CỦA ZUSTAND
+      // (Nó sẽ tự lưu storage và set state isAuthenticated = true)
+      login(accessToken, refreshToken, isRemembered);
 
       toast.success("Đăng nhập thành công! 🎉");
-
-      // Chuyển hướng ngay lập tức (không cần reload vì axiosClient tự lấy token mới)
-      setTimeout(() => {
-        // Dùng window.location.href = "/" thay vì navigate("/")
-        // Lệnh này vừa chuyển về Home, vừa ép trang web tải lại để App nhận token mới
-        window.location.href = "/"; 
-      }, 1000);
+      // 4. Chuyển hướng ngay lập tức (Mượt mà, không reload)
+      navigate("/");
     },
     onError: (error) => {
       const msg = error.response?.data?.message || "Đăng nhập thất bại";
