@@ -52,7 +52,7 @@ axiosClient.interceptors.response.use(
 
         // Gọi API Refresh (Dùng axios gốc để tránh lặp interceptor)
         // Lưu ý: Đường dẫn phải khớp với Backend (/auth/refresh)
-        const response = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
+        const response = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/auth/refresh`, { refreshToken });
         
         const { accessToken } = response.data;
 

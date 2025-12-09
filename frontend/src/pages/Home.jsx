@@ -157,7 +157,7 @@ export default function Home() {
                   </span>
                   {/* Format ngày từ DB */}
                   <span className="font-bold text-foreground">
-                    {new Date(userData?.createdAt).toLocaleDateString()}
+                    {new Date(userData?.createdAt).toLocaleDateString("vi-VN")}
                   </span>
                 </div>
                 <Separator />
@@ -170,7 +170,7 @@ export default function Home() {
                     {userData?.profile?.dateOfBirth
                       ? new Date(
                           userData.profile.dateOfBirth
-                        ).toLocaleDateString()
+                        ).toLocaleDateString("vi-VN")
                       : "Chưa cập nhật"}
                   </span>
                 </div>
