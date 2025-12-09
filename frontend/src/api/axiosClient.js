@@ -16,6 +16,7 @@ const axiosClient = axios.create({
     // Đây là chuẩn giao tiếp phổ biến nhất trong RESTful API hiện nay.
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Cho phép gửi kèm Cookie (nếu có) trong các request giữa các nguồn gốc (Cross-Origin)
 });
 
 // 1️⃣ REQUEST INTERCEPTOR: Gắn Token vào mọi request
@@ -44,39 +45,29 @@ axiosClient.interceptors.response.use(
 
       try {
         // Lấy refreshToken từ nơi lưu trữ
-        const refreshToken = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
+        const response = await axios.post(
+          `${baseURL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
 
-        if (!refreshToken) {
-          throw new Error("Không có Refresh Token");
-        }
-
-        // Gọi API Refresh (Dùng axios gốc để tránh lặp interceptor)
-        // Lưu ý: Đường dẫn phải khớp với Backend (/auth/refresh)
-        const response = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/auth/refresh`, { refreshToken });
-        
         const { accessToken } = response.data;
 
-        // Lưu Access Token mới vào đúng nơi (Local hoặc Session)
-        if (localStorage.getItem("refreshToken")) {
+        // Lưu Access Token mới
+        if (localStorage.getItem("accessToken")) {
           localStorage.setItem("accessToken", accessToken);
         } else {
           sessionStorage.setItem("accessToken", accessToken);
         }
 
-        // Gắn token mới vào header của request cũ đang bị lỗi
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
-        // Gọi lại request cũ với token mới
         return axiosClient(originalRequest);
 
       } catch (refreshError) {
-        // Nếu Refresh Token cũng hết hạn hoặc lỗi -> Logout bắt buộc
-        console.error("Refresh token expired or invalid", refreshError);
-        
         localStorage.clear();
         sessionStorage.clear();
-        window.location.href = "/login"; // Chuyển hướng về trang login
-        
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }

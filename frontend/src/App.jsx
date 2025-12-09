@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
+import axiosClient from "./api/axiosClient";
 // Import các trang (pages) của ứng dụng
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -19,7 +20,31 @@ const queryClient = new QueryClient();
 function App() {
   // Lấy hàm logout từ store
   const logout = useAuthStore((state) => state.logout);
-  
+  const { isAuthenticated, login } = useAuthStore();
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Hàm gọi refresh token chủ động
+    const silentRefresh = async () => {
+      try {
+        const { data } = await axiosClient.post("/auth/refresh");
+        // Cập nhật lại Access Token mới vào kho
+        // Lưu ý: Backend trả về accessToken mới, ta cần cập nhật nó
+        const isRemembered = !!localStorage.getItem("accessToken");
+        login(data.accessToken, null, isRemembered); // null vì refresh token nằm trong cookie rồi
+        console.log("🔄 Silent Refresh thành công!");
+      } catch (error) {
+        console.log("Silent Refresh lỗi (có thể do hết hạn cookie)", error);
+      }
+    };
+
+    // Thiết lập Interval: Gọi mỗi 9 giây (vì Access Token sống 10s)
+    // Trong thực tế nếu Access Token sống 15p, bạn nên để khoảng 14p (14 * 60 * 1000)
+    const intervalId = setInterval(silentRefresh, 9000);
+
+    return () => clearInterval(intervalId); // Dọn dẹp khi unmount
+  }, [isAuthenticated, login]);
+
   useEffect(() => {
     // Hàm xử lý khi Storage thay đổi (ở tab khác)
     const handleStorageChange = (event) => {

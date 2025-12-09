@@ -1,16 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './logging.interceptor';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   // Khởi tạo instance của ứng dụng NestJS, sử dụng module gốc là AppModule
   // Đây là nơi bắt đầu của toàn bộ cấu trúc Dependency Injection trong NestJS
   const app = await NestFactory.create(AppModule);
 
+  app.use(cookieParser());
+
   // Kích hoạt CORS (Cross-Origin Resource Sharing)
   // Cấu hình này cực kỳ quan trọng khi Frontend (React) và Backend chạy trên 2 domain/port khác nhau
   // (Ví dụ: React chạy port 5173 gọi API sang NestJS port 3000)
-  app.enableCors();
+  app.enableCors({
+    origin: 'http://localhost:5173', // Phải chỉ định rõ domain Frontend (không dùng '*')
+    credentials: true, // Cho phép gửi Cookie qua lại
+  });
 
   // Đăng ký một Interceptor hoạt động trên phạm vi toàn cục (Global)
   // 'LoggingInterceptor' sẽ được áp dụng cho TẤT CẢ các route trong ứng dụng
