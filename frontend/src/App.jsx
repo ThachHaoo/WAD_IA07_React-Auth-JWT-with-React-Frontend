@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuthStore } from "@/stores/useAuthStore";
+import { useEffect } from "react";
 // Import các trang (pages) của ứng dụng
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -7,6 +7,9 @@ import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 // Import component hiển thị thông báo (toast) từ thư viện sonner
 import { Toaster } from "@/components/ui/sonner";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PublicRoute } from "@/components/PublicRoute";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 // Import và cấu hình TanStack Query (React Query) để quản lý state từ server
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,11 +17,27 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const queryClient = new QueryClient();
 
 function App() {
-  // LOGIC XÁC THỰC (AUTHENTICATION):
-  // Kiểm tra xem người dùng đã đăng nhập chưa bằng cách tìm token trong LocalStorage hoặc SessionStorage.
-  // Dấu "!!" dùng để ép kiểu giá trị tìm được về dạng boolean (true/false).
-  // Ví dụ: nếu có chuỗi token -> true, nếu null/undefined -> false.
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  // Lấy hàm logout từ store
+  const logout = useAuthStore((state) => state.logout);
+  
+  useEffect(() => {
+    // Hàm xử lý khi Storage thay đổi (ở tab khác)
+    const handleStorageChange = (event) => {
+      // Nếu key bị thay đổi là "accessToken" và giá trị mới là null (tức là bị xóa)
+      if (event.key === "accessToken" && event.newValue === null) {
+        console.log("Đã đăng xuất từ tab khác -> Đăng xuất tab này luôn.");
+        logout(); // Gọi hàm logout để cập nhật state của tab hiện tại
+      }
+    };
+
+    // Đăng ký lắng nghe sự kiện
+    window.addEventListener("storage", handleStorageChange);
+
+    // Dọn dẹp khi component unmount
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [logout]);
 
   return (
     // Bọc toàn bộ ứng dụng trong QueryClientProvider để các component con có thể sử dụng useQuery/useMutation
@@ -26,32 +45,36 @@ function App() {
       <div className="min-h-screen bg-gray-100">
         {/* Container chứa các Route */}
         <Routes>
-          {/* --- ROUTE TRANG CHỦ (Protected Route) ---
-              Logic: Kiểm tra biến isAuthenticated.
-              - Nếu TRUE (đã đăng nhập): Hiển thị trang Home.
-              - Nếu FALSE (chưa đăng nhập): Render component <Login /> ngay tại đây (hoặc có thể dùng <Navigate to="/login" />).
-          */}
-          <Route path="/" element={isAuthenticated ? <Home /> : <Login />} />
-
-          {/* --- ROUTE ĐĂNG NHẬP ---
-              Logic ngược lại để ngăn người dùng đã đăng nhập quay lại trang login.
-              - Nếu TRUE (đã đăng nhập): Tự động chuyển hướng (Navigate) về trang chủ ("/").
-              - Nếu FALSE (chưa đăng nhập): Hiển thị form Login.
-          */}
+          {/* 🔒 BẢO VỆ: Phải đăng nhập mới vào được Home */}
           <Route
-            path="/login"
-            element={isAuthenticated ? <Navigate to="/" /> : <Login />}
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
           />
 
-          {/* --- ROUTE ĐĂNG KÝ --- 
-              Cho phép truy cập công khai
-          */}
-          <Route path="/register" element={<Register />} />
+          {/* 🔓 CÔNG KHAI: Đã đăng nhập thì không vào đây nữa */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
 
-          {/* --- ROUTE 404 (Catch-all) ---
-              path="*" đại diện cho tất cả các đường dẫn không khớp với các route đã định nghĩa ở trên.
-              Sẽ hiển thị trang NotFound.
-          */}
+          {/* Register cũng nên dùng PublicRoute để user đã login không cần đkí lại */}
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
 
