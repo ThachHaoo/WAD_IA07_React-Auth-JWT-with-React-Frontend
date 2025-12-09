@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 // Import các quy tắc validate email/password từ file utils
 import { emailValidation, passwordValidation } from "../utils/validations";
+import { useMutation } from "@tanstack/react-query";
+import axiosClient from "../api/axiosClient";
 // Import các UI component (thường là từ Shadcn UI)
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +23,6 @@ import { Spinner } from "@/components/ui/spinner";
 export default function Login() {
   // Hook dùng để điều hướng trang sau khi login thành công
   const navigate = useNavigate();
-  // State để quản lý hiệu ứng loading giả lập khi bấm nút login
-  const [isFakeLoading, setIsFakeLoading] = useState(false);
 
   // Khởi tạo useForm để quản lý form
   const {
@@ -39,39 +39,47 @@ export default function Login() {
   // Theo dõi giá trị thực tế của checkbox "Ghi nhớ đăng nhập"
   const isRemembered = watch("remember");
 
-  // Hàm xử lý logic khi form hợp lệ và được submit
-  const onSubmit = () => {
-    // Bật trạng thái loading
-    setIsFakeLoading(true);
+  // ✅ THÊM MỚI: Khai báo useMutation để gọi API thật
+  const mutation = useMutation({
+    mutationFn: async (credentials) => {
+      // Gọi API POST /auth/login
+      return await axiosClient.post("/auth/login", credentials);
+    },
+    onSuccess: (response) => {
+      // Lấy token từ response trả về
+      const { accessToken, refreshToken } = response.data;
 
-    // Giả lập độ trễ mạng 1.5 giây
-    setTimeout(() => {
-      setIsFakeLoading(false);
-      // Token giả lập (trong thực tế sẽ nhận từ API response)
-      const token = "token_gia_lap_123456";
-
-      // LOGIC QUAN TRỌNG: Xử lý "Ghi nhớ đăng nhập"
+      // Logic lưu token (giống bài cũ nhưng dùng token thật)
       if (isRemembered) {
-        // Nếu chọn ghi nhớ: Lưu vào LocalStorage (lưu trữ lâu dài kể cả khi tắt browser)
-        localStorage.setItem("accessToken", token);
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("refreshToken", refreshToken); // Lưu thêm cái này
       } else {
-        // Nếu không chọn: Lưu vào SessionStorage (mất đi khi đóng tab/browser)
-        sessionStorage.setItem("accessToken", token);
+        sessionStorage.setItem("accessToken", accessToken);
+        sessionStorage.setItem("refreshToken", refreshToken); // Lưu thêm cái này
       }
 
-      // Hiển thị thông báo thành công
-      toast.success("Chào mừng trở lại! 👋", {
-        description: "Đăng nhập thành công. Đang chuyển hướng...",
-        duration: 3000,
-      });
+      toast.success("Đăng nhập thành công! 🎉");
 
-      // Chuyển hướng về trang chủ sau 1 giây
+      // Chuyển hướng ngay lập tức (không cần reload vì axiosClient tự lấy token mới)
       setTimeout(() => {
-        navigate("/");
-        // Reload lại trang để cập nhật state xác thực trên toàn app
-        window.location.reload();
+        // Dùng window.location.href = "/" thay vì navigate("/")
+        // Lệnh này vừa chuyển về Home, vừa ép trang web tải lại để App nhận token mới
+        window.location.href = "/"; 
       }, 1000);
-    }, 1500);
+    },
+    onError: (error) => {
+      const msg = error.response?.data?.message || "Đăng nhập thất bại";
+      toast.error(msg);
+    },
+  });
+
+  // Hàm xử lý logic khi form hợp lệ và được submit
+  const onSubmit = (data) => {
+    // Gọi API thật với dữ liệu từ form
+    mutation.mutate({
+      email: data.email,
+      password: data.password,
+    });
   };
 
   return (
@@ -152,12 +160,16 @@ export default function Login() {
             </div>
 
             {/* --- Nút Submit --- */}
-            <Button className="w-full" type="submit" disabled={isFakeLoading}>
-              {isFakeLoading ? (
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? (
                 // Hiển thị Spinner khi đang xử lý
                 <>
                   <Spinner className="mr-2" />
-                  Đang kiểm tra...
+                  Đang đăng nhập...
                 </>
               ) : (
                 "Đăng Nhập"

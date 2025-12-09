@@ -18,6 +18,73 @@ const axiosClient = axios.create({
   },
 });
 
+// 1️⃣ REQUEST INTERCEPTOR: Gắn Token vào mọi request
+axiosClient.interceptors.request.use(
+  (config) => {
+    // Lấy token từ localStorage hoặc sessionStorage
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// 2️⃣ RESPONSE INTERCEPTOR: Xử lý lỗi 401 và Refresh Token
+axiosClient.interceptors.response.use(
+  (response) => response, // Nếu thành công thì trả về data
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Nếu lỗi là 401 (Unauthorized) và request này chưa từng được retry
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true; // Đánh dấu đã thử lại để tránh vòng lặp vô tận
+
+      try {
+        // Lấy refreshToken từ nơi lưu trữ
+        const refreshToken = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
+
+        if (!refreshToken) {
+          throw new Error("Không có Refresh Token");
+        }
+
+        // Gọi API Refresh (Dùng axios gốc để tránh lặp interceptor)
+        // Lưu ý: Đường dẫn phải khớp với Backend (/auth/refresh)
+        const response = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
+        
+        const { accessToken } = response.data;
+
+        // Lưu Access Token mới vào đúng nơi (Local hoặc Session)
+        if (localStorage.getItem("refreshToken")) {
+          localStorage.setItem("accessToken", accessToken);
+        } else {
+          sessionStorage.setItem("accessToken", accessToken);
+        }
+
+        // Gắn token mới vào header của request cũ đang bị lỗi
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+        // Gọi lại request cũ với token mới
+        return axiosClient(originalRequest);
+
+      } catch (refreshError) {
+        // Nếu Refresh Token cũng hết hạn hoặc lỗi -> Logout bắt buộc
+        console.error("Refresh token expired or invalid", refreshError);
+        
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = "/login"; // Chuyển hướng về trang login
+        
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // Xuất axiosClient ra để sử dụng ở các nơi khác (ví dụ: trong Register.jsx).
 // Khi cần gọi API, ta sẽ import 'axiosClient' thay vì 'axios' gốc.
 export default axiosClient;
