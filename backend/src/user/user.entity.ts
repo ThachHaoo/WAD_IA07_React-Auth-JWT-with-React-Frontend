@@ -3,7 +3,10 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
+import { UserProfile } from './user-profile.entity';
 
 // @Entity(): Decorator quan trọng nhất.
 // Nó báo cho TypeORM biết class 'User' này sẽ đại diện cho một bảng trong Database.
@@ -26,6 +29,13 @@ export class User {
   // Lưu ý: Giá trị lưu ở đây là chuỗi Hash (đã mã hóa) dài ngoằng, KHÔNG PHẢI mật khẩu gốc "123456".
   @Column({ nullable: false })
   password: string;
+
+  @OneToOne(() => UserProfile, (profile) => profile.user, {
+    cascade: true, // Tự động lưu Profile khi lưu User
+    eager: true,   // Tự động load Profile khi query User
+  })
+  @JoinColumn() // Cột khóa ngoại (profileId) sẽ nằm ở bảng User
+  profile: UserProfile;
 
   // @CreateDateColumn(): Cột đặc biệt dùng để Audit (ghi vết).
   // TypeORM sẽ TỰ ĐỘNG điền thời gian hiện tại ngay khoảnh khắc bản ghi được tạo ra.

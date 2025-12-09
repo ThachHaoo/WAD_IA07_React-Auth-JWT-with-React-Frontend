@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 // Import TypeOrmModule để kết nối và làm việc với Database
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserProfile } from './user/user-profile.entity';
 import { User } from './user/user.entity';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
@@ -34,7 +35,7 @@ import { AuthModule } from './auth/auth.module';
       database: process.env.DB_NAME!,
 
       // Danh sách các Entity (bảng) sẽ được nạp vào kết nối này
-      entities: [User],
+      entities: [User, UserProfile],
 
       // --- CỰC KỲ QUAN TRỌNG ---
       // synchronize: true -> Tự động tạo/sửa bảng trong DB dựa trên code Entity.

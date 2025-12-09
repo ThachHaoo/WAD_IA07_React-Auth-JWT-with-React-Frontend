@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { User } from './user.entity';
+import { UserProfile } from './user-profile.entity';
 
 @Module({
   // 1. imports: Nơi khai báo các module phụ thuộc.
@@ -10,7 +11,7 @@ import { User } from './user.entity';
   // - Lệnh này đăng ký Entity 'User' với TypeORM cho riêng module này.
   // - Nó cho phép NestJS tự động tạo ra một 'Repository' cho bảng User.
   // - Nhờ dòng này, bạn mới có thể sử dụng @InjectRepository(User) trong UserService.
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [TypeOrmModule.forFeature([User, UserProfile])],
 
   // 2. controllers: Khai báo các Controller thuộc module này.
   // - Giúp NestJS biết đường dẫn (route) nào sẽ do module này xử lý.

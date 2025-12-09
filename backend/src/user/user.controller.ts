@@ -8,11 +8,12 @@ import {
   Get,
   Request,
   NotFoundException,
+  Patch,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { AuthGuard } from '@nestjs/passport';
-
+import { UpdateUserDto } from './dto/update-user.dto';
 // @Controller('user'): Định nghĩa route gốc (prefix) cho toàn bộ Controller này.
 // Tất cả các endpoint bên trong sẽ bắt đầu bằng "/user".
 @Controller('user')
@@ -50,6 +51,18 @@ export class UserController {
     // Loại bỏ password trước khi trả về
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...result } = user; 
+    return result;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('profile')
+  async updateProfile(@Request() req, @Body() updateUserDto: UpdateUserDto) {
+    // req.user.email lấy từ Token
+    const user = await this.userService.update(req.user.email, updateUserDto);
+    
+    // Xóa password trước khi trả về
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...result } = user;
     return result;
   }
 }

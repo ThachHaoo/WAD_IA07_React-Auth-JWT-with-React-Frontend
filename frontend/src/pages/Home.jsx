@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 // Import thư viện hiển thị thông báo (toast)
 import { toast } from "sonner";
+import { EditProfileDialog } from "@/components/EditProfileDialog";
 
 export default function Home() {
   const logout = useAuthStore((state) => state.logout);
@@ -94,11 +95,14 @@ export default function Home() {
               // Hiển thị dữ liệu thật khi đã tải xong
               <div className="w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
-                  {userData?.email?.split("@")[0]}
+                  {/* Ưu tiên hiện Fullname, nếu chưa có thì hiện Email cắt ngắn */}
+                  {userData.profile?.fullName || userData.email.split("@")[0]}
                 </h2>
                 <p className="text-sm font-medium text-gray-500">
                   {userData?.email}
                 </p>
+
+                <EditProfileDialog user={userData} />
 
                 {/* Các huy hiệu trạng thái (Active, Verified) */}
                 <div className="flex justify-center gap-2 mt-3">
@@ -121,7 +125,7 @@ export default function Home() {
 
           <Separator className="my-6" />
 
-          {/* Phần thông tin chi tiết (Role, Joined Date, Last Login) */}
+          {/* Phần chi tiết thông tin người dùng */}
           <div className="w-full space-y-4">
             {isLoading ? (
               // Vòng lặp tạo 3 dòng Skeleton
@@ -154,6 +158,31 @@ export default function Home() {
                   {/* Format ngày từ DB */}
                   <span className="font-bold text-foreground">
                     {new Date(userData?.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <Separator />
+                {/* Hiển thị Ngày sinh */}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground font-medium">
+                    Birthday
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {userData?.profile?.dateOfBirth
+                      ? new Date(
+                          userData.profile.dateOfBirth
+                        ).toLocaleDateString()
+                      : "Chưa cập nhật"}
+                  </span>
+                </div>
+                <Separator />
+
+                {/* Hiển thị Địa chỉ */}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground font-medium">
+                    Address
+                  </span>
+                  <span className="font-bold text-foreground truncate max-w-[200px]">
+                    {userData?.profile?.address || "Chưa cập nhật"}
                   </span>
                 </div>
                 <Separator />

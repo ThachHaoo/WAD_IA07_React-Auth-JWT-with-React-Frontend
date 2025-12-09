@@ -7,6 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
 import { RegisterUserDto } from './dto/register-user.dto';
+import { UserProfile } from './user-profile.entity';
+import { UpdateUserDto } from './dto/update-user.dto';
 // Import thư viện bcrypt để mã hóa mật khẩu
 import * as bcrypt from 'bcrypt';
 
@@ -25,9 +27,34 @@ export class UserService {
   ) {}
 
   async findOneByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+    return this.userRepository.findOne({ 
+      where: { email },
+      relations: ['profile'] // Load kèm bảng profile
+    });
   }
   
+  async update(email: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.findOneByEmail(email);
+
+    // Nếu user không tồn tại, ném ra lỗi
+    if (!user) {
+      throw new InternalServerErrorException('User not found');
+    }
+
+    // Nếu user chưa có profile thì tạo mới, có rồi thì lấy ra
+    if (!user.profile) {
+      user.profile = new UserProfile();
+    }
+
+    // Gán dữ liệu từ DTO vào User Profile
+    if (updateUserDto.fullName) user.profile.fullName = updateUserDto.fullName;
+    if (updateUserDto.address) user.profile.address = updateUserDto.address;
+    if (updateUserDto.dateOfBirth) user.profile.dateOfBirth = new Date(updateUserDto.dateOfBirth);
+
+    // Lưu User (nhờ cascade: true nên nó tự lưu luôn Profile)
+    return this.userRepository.save(user);
+  }
+
   // Hàm xử lý đăng ký người dùng mới
   // Nhận vào DTO (Data Transfer Object) chứa email và password
   async register(registerUserDto: RegisterUserDto): Promise<User> {
