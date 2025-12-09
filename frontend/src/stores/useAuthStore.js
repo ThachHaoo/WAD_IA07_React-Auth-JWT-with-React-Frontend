@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import axiosClient from "../api/axiosClient";
 
 export const useAuthStore = create((set) => ({
   // 1. Khởi tạo State: Kiểm tra token trong cả 2 kho
@@ -22,14 +23,20 @@ export const useAuthStore = create((set) => ({
   },
 
   // 3. Action Logout
-  logout: () => {
-    // Xóa sạch Storage
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("refreshToken");
+  logout: async () => {
+    try {
+      // Gọi API để Server xóa Cookie HttpOnly
+      await axiosClient.post("/auth/logout");
+      console.log("Server logout success (Cookie cleared)");
+    } catch (error) {
+      console.error("Server logout failed (nhưng vẫn xóa local)", error);
+    } finally {
+      // Dù API thành công hay thất bại, Frontend vẫn phải xóa sạch dấu vết
+      localStorage.removeItem("accessToken");
+      sessionStorage.removeItem("accessToken");
+      // Không cần xóa refreshToken vì nó ở Cookie (Server đã xóa hoặc JS không xóa được)
 
-    // Cập nhật State -> Giao diện tự về Login
-    set({ isAuthenticated: false });
+      set({ isAuthenticated: false });
+    }
   },
 }));

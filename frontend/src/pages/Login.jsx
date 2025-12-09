@@ -39,9 +39,6 @@ export default function Login() {
     delayError: 300, // Đợi 300ms sau khi dừng gõ mới báo lỗi (tránh báo lỗi liên tục)
   });
 
-  // Theo dõi giá trị thực tế của checkbox "Ghi nhớ đăng nhập"
-  const isRemembered = watch("remember");
-
   // ✅ THÊM MỚI: Khai báo useMutation để gọi API thật
   const mutation = useMutation({
     mutationFn: async (credentials) => {
