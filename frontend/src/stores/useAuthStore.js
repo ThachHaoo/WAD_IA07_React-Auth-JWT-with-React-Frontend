@@ -18,9 +18,6 @@ export const useAuthStore = create((set) => ({
       sessionStorage.setItem("accessToken", accessToken);
       sessionStorage.setItem("refreshToken", refreshToken);
     }
-
-    queryClient.removeQueries();
-    queryClient.clear();
     
     // Cập nhật State -> Giao diện tự đổi
     set({ isAuthenticated: true });
@@ -40,7 +37,11 @@ export const useAuthStore = create((set) => ({
       sessionStorage.removeItem("accessToken");
       // Không cần xóa refreshToken vì nó ở Cookie (Server đã xóa hoặc JS không xóa được)
 
-      set({ isAuthenticated: false });
+      
+    queryClient.removeQueries();
+    queryClient.clear();
+    
+    set({ isAuthenticated: false });
     }
   },
 }));
