@@ -144,7 +144,7 @@ export default function Login() {
               <Checkbox
                 id="remember"
                 // Vì Shadcn Checkbox là custom component, cần dùng onCheckedChange để cập nhật value thủ công vào form
-                onCheckedChange={(checked) => setValue("remember", checked)}
+                onCheckedChange={(checked) => setValue("remember", checked)} tabindex={-1}
               />
               <Label
                 htmlFor="remember"
