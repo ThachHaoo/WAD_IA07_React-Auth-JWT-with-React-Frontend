@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useQuery } from "@tanstack/react-query"; // 1. Import useQuery
+import axiosClient from "../api/axiosClient"; // 2. Import axiosClient
 // Import các icon từ thư viện lucide-react
 import { LogOut, CheckCircle2, ShieldCheck } from "lucide-react";
 // Import các UI component (thường là từ Shadcn UI)
@@ -14,36 +14,31 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 export default function Home() {
-  // Hook dùng để điều hướng trang (tuy nhiên trong code này chưa thấy sử dụng trực tiếp)
-  const navigate = useNavigate();
-
   const logout = useAuthStore((state) => state.logout);
-  // State quản lý trạng thái tải trang (loading) và dữ liệu người dùng
-  const [isLoading, setIsLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
 
   // useEffect để giả lập việc gọi API lấy dữ liệu người dùng khi component được mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Set dữ liệu giả lập sau 1 giây
-      setUserData({
-        name: "Admin User",
-        email: "admin@gmail.com",
-        role: "Administrator",
-        // Format ngày hiện tại thành dạng chuỗi (VD: Oct 24, 2023)
-        joinedDate: new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "2-digit",
-        }),
-      });
-      // Tắt trạng thái loading
-      setIsLoading(false);
-    }, 1000);
+  const {
+    data: userData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["userProfile"],
+    queryFn: async () => {
+      // Gọi API bảo mật. axiosClient sẽ tự gắn Token vào Header
+      const response = await axiosClient.get("/user/profile");
+      return response.data;
+    },
+    // Nếu API lỗi (do hết hạn token mà refresh thất bại), tự động logout
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 phút (Trong 5p này, dù bạn chuyển tab nó cũng không gọi lại)
+    refetchOnWindowFocus: false, // Tắt tính năng tự fetch khi focus lại cửa sổ
+  });
 
-    // Cleanup function: dọn dẹp timer nếu component bị unmount trước khi timer chạy xong
-    return () => clearTimeout(timer);
-  }, []);
+  // Nếu có lỗi (ví dụ token hỏng hẳn), logout luôn
+  if (isError) {
+    logout();
+    return null;
+  }
 
   const handleLogout = () => {
     toast.info("Đang đăng xuất...", {
@@ -99,10 +94,10 @@ export default function Home() {
               // Hiển thị dữ liệu thật khi đã tải xong
               <div className="w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
-                  {userData.name}
+                  {userData?.email?.split("@")[0]}
                 </h2>
                 <p className="text-sm font-medium text-gray-500">
-                  {userData.email}
+                  {userData?.email}
                 </p>
 
                 {/* Các huy hiệu trạng thái (Active, Verified) */}
@@ -144,18 +139,21 @@ export default function Home() {
               // Dữ liệu chi tiết thật
               <div className="space-y-4 animate-in fade-in duration-1000">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500 font-medium">Role</span>
-                  <span className="font-bold text-gray-900">
-                    {userData.role}
+                  <span className="text-muted-foreground font-medium">
+                    User ID
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {userData?.id}
                   </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500 font-medium">
-                    Member since
+                  <span className="text-muted-foreground font-medium">
+                    Joined Date
                   </span>
-                  <span className="font-bold text-gray-900">
-                    {userData.joinedDate}
+                  {/* Format ngày từ DB */}
+                  <span className="font-bold text-foreground">
+                    {new Date(userData?.createdAt).toLocaleDateString()}
                   </span>
                 </div>
                 <Separator />

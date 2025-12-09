@@ -4,9 +4,14 @@ import {
   Body,
   ValidationPipe,
   UsePipes,
+  UseGuards,
+  Get,
+  Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register-user.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 // @Controller('user'): Định nghĩa route gốc (prefix) cho toàn bộ Controller này.
 // Tất cả các endpoint bên trong sẽ bắt đầu bằng "/user".
@@ -33,5 +38,18 @@ export class UserController {
 
     // Gọi sang Service để thực hiện logic đăng ký (Hash password -> Lưu xuống DB).
     return this.userService.register(registerUserDto);
+  }
+  @UseGuards(AuthGuard('jwt'))
+  @Get('profile')
+  async getProfile(@Request() req) {
+    // req.user được JwtStrategy giải mã từ token
+    const user = await this.userService.findOneByEmail(req.user.email);
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    // Loại bỏ password trước khi trả về
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...result } = user; 
+    return result;
   }
 }
