@@ -1,6 +1,5 @@
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
 // Import các quy tắc validate email/password từ file utils
 import { emailValidation, passwordValidation } from "../utils/validations";
@@ -33,7 +32,7 @@ export default function Login() {
     handleSubmit, // Hàm xử lý khi submit form
     formState: { errors }, // Object chứa các lỗi validation
     setValue, // Hàm set giá trị thủ công cho form (dùng cho Checkbox)
-    watch, // Hàm theo dõi sự thay đổi giá trị của field
+    getValues, // Hàm để lấy giá trị form mà không gây re-render
   } = useForm({
     mode: "onChange", // Validate ngay khi người dùng nhập liệu (thay vì lúc submit)
     delayError: 300, // Đợi 300ms sau khi dừng gõ mới báo lỗi (tránh báo lỗi liên tục)
@@ -49,7 +48,7 @@ export default function Login() {
       // Lấy token từ response trả về
       const { accessToken, refreshToken } = response.data;
 
-      const isRemembered = watch("remember");
+      const isRemembered = getValues("remember");
 
       // 3. GỌI HÀM LOGIN CỦA ZUSTAND
       // (Nó sẽ tự lưu storage và set state isAuthenticated = true)
