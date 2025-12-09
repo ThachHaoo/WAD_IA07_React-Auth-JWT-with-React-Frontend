@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/useAuthStore";
 // Import các quy tắc validate email/password từ file utils
 import { emailValidation, passwordValidation } from "../utils/validations";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosClient from "../api/axiosClient";
 // Import các UI component (thường là từ Shadcn UI)
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export default function Login() {
 
   const login = useAuthStore((state) => state.login);
 
+  const queryClient = useQueryClient();
   // Khởi tạo useForm để quản lý form
   const {
     register, // Hàm dùng để đăng ký input vào form hook
@@ -50,6 +51,7 @@ export default function Login() {
 
       const isRemembered = getValues("remember");
 
+      queryClient.removeQueries();
       // 3. GỌI HÀM LOGIN CỦA ZUSTAND
       // (Nó sẽ tự lưu storage và set state isAuthenticated = true)
       login(accessToken, refreshToken, isRemembered);
