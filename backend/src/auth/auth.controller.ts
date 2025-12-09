@@ -18,8 +18,8 @@ export class AuthController {
     // 1. Gửi Refresh Token xuống Cookie (HTTP Only)
     res.cookie('refreshToken', data.refreshToken, {
       httpOnly: true, // JavaScript không đọc được (Chống XSS)
-      secure: false, // Để false khi chạy localhost (True khi deploy https)
-      sameSite: 'lax',
+      secure: true, // Để false khi chạy localhost (True khi deploy https)
+      sameSite: 'none',
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 ngày
     });
 
