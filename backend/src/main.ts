@@ -14,7 +14,7 @@ async function bootstrap() {
   // Cấu hình này cực kỳ quan trọng khi Frontend (React) và Backend chạy trên 2 domain/port khác nhau
   // (Ví dụ: React chạy port 5173 gọi API sang NestJS port 3000)
   app.enableCors({
-    origin: 'https://wad-ia-07-react-auth-jwt-with-react-frontend-42ificbwy.vercel.app', // Phải chỉ định rõ domain Frontend (không dùng '*')
+    origin: 'https://wad-ia-07-react-auth-jwt-with-react.vercel.app/', // Phải chỉ định rõ domain Frontend (không dùng '*')
     credentials: true, // Cho phép gửi Cookie qua lại
   });
 
