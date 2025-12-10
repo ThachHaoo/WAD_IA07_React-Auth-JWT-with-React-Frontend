@@ -8,38 +8,47 @@ import {
 } from 'typeorm';
 import { UserProfile } from './user-profile.entity';
 
-// @Entity(): Decorator quan trọng nhất.
-// Nó báo cho TypeORM biết class 'User' này sẽ đại diện cho một bảng trong Database.
-// Mặc định, TypeORM sẽ tạo bảng tên là "user" (chữ thường) trong PostgreSQL.
+// @Entity(): Decorator báo cho TypeORM biết đây là một bảng trong Database.
 @Entity()
 export class User {
-  // @PrimaryGeneratedColumn(): Định nghĩa cột khóa chính (Primary Key).
-  // TypeORM sẽ tự động sinh giá trị và tự động tăng (Auto Increment) mỗi khi thêm user mới (1, 2, 3...).
+  // @PrimaryGeneratedColumn(): Khóa chính tự động tăng (1, 2, 3...).
   @PrimaryGeneratedColumn()
   id: number;
 
-  // @Column(): Định nghĩa các cột dữ liệu thông thường.
-  // Các tùy chọn (options):
-  // - unique: true -> Đảm bảo email là duy nhất. Nếu cố tình thêm email trùng, DB sẽ báo lỗi (liên quan đến lỗi 23505 ở user.service).
-  // - nullable: false -> Bắt buộc phải có dữ liệu, không được phép để NULL.
+  // @Column(): Cột Email, bắt buộc duy nhất (unique) và không được rỗng.
   @Column({ unique: true, nullable: false })
   email: string;
 
-  // Cột lưu mật khẩu.
-  // Lưu ý: Giá trị lưu ở đây là chuỗi Hash (đã mã hóa) dài ngoằng, KHÔNG PHẢI mật khẩu gốc "123456".
+  // Cột Password: Lưu chuỗi hash, không lưu plain-text.
   @Column({ nullable: false })
   password: string;
 
+  // --- QUAN HỆ ONE-TO-ONE (1-1) ---
+  // Định nghĩa mối quan hệ: Một User chỉ có một Profile duy nhất.
+  // - Tham số 1: Chỉ định Entity đích (UserProfile).
+  // - Tham số 2: Chỉ định trường đối ứng bên Entity đích (profile.user).
   @OneToOne(() => UserProfile, (profile) => profile.user, {
-    cascade: true, // Tự động lưu Profile khi lưu User
-    eager: true,   // Tự động load Profile khi query User
+    
+    // cascade: true -> "Hiệu ứng lan truyền".
+    // Khi bạn lưu (save) User, nếu trong object User có chứa thông tin Profile,
+    // TypeORM sẽ TỰ ĐỘNG insert/update luôn bảng Profile.
+    // -> Giúp bạn không cần gọi lệnh save 2 lần cho 2 bảng.
+    cascade: true, 
+    
+    // eager: true -> "Tải ngay lập tức".
+    // Khi bạn dùng lệnh findOne (lấy User), TypeORM sẽ tự động JOIN với bảng Profile
+    // để lấy luôn dữ liệu profile về.
+    // -> Rất tiện lợi, không cần phải khai báo .relations: ['profile'] thủ công.
+    eager: true,   
   })
-  @JoinColumn() // Cột khóa ngoại (profileId) sẽ nằm ở bảng User
+  
+  // @JoinColumn(): Đánh dấu đây là "Bên sở hữu" (Owner Side) của quan hệ.
+  // Kết quả trong Database: Bảng 'user' sẽ có thêm một cột tên là "profileId" (khóa ngoại).
+  // (Nếu không có @JoinColumn, TypeORM sẽ không biết đặt khóa ngoại ở bảng nào).
+  @JoinColumn() 
   profile: UserProfile;
 
-  // @CreateDateColumn(): Cột đặc biệt dùng để Audit (ghi vết).
-  // TypeORM sẽ TỰ ĐỘNG điền thời gian hiện tại ngay khoảnh khắc bản ghi được tạo ra.
-  // Bạn không cần phải set giá trị cho trường này thủ công trong code.
+  // @CreateDateColumn(): Tự động ghi lại thời điểm tạo bản ghi.
   @CreateDateColumn()
   createdAt: Date;
 }

@@ -1,23 +1,31 @@
-// Import các decorator (bộ kiểm tra) từ thư viện class-validator.
-// Thư viện này kết hợp với ValidationPipe (trong controller) để tự động kiểm tra dữ liệu.
+// Import các decorator kiểm tra dữ liệu từ thư viện class-validator.
+// Thư viện này hoạt động song song với class-transformer để chuyển đổi và kiểm tra dữ liệu JSON gửi lên.
 import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
 
 // DTO (Data Transfer Object): Đối tượng chuyển đổi dữ liệu.
-// Class này định nghĩa cấu trúc dữ liệu mà Client (React) BẮT BUỘC phải gửi lên khi gọi API đăng ký.
+// Đây là "Hợp đồng" (Contract) giữa Frontend và Backend.
+// Nó quy định chính xác Frontend được phép gửi những trường nào lên Server.
+// Nếu Frontend gửi thừa trường (ví dụ: gửi thêm 'role: admin'), NestJS có thể tự động loại bỏ (nếu config whitelist: true).
 export class RegisterUserDto {
-  // @IsEmail: Kiểm tra xem chuỗi string này có đúng định dạng email không (phải có @, domain, v.v.).
-  // Tham số thứ 2 là options: { message: '...' } để tùy chỉnh thông báo lỗi trả về cho Frontend.
-  // -> Nếu sai, API sẽ trả về lỗi 400 Bad Request ngay lập tức.
+  
+  // --- VALIDATE EMAIL ---
+  // @IsEmail: Kiểm tra định dạng chuỗi có phải là email hợp lệ không (a@b.c).
+  // LƯU Ý QUAN TRỌNG:
+  // - Decorator này chỉ kiểm tra ĐỊNH DẠNG (Format).
+  // - Nó KHÔNG kiểm tra email đã tồn tại trong Database hay chưa (việc đó là của UserService lo).
   @IsEmail({}, { message: 'Email không đúng định dạng' })
   email: string;
 
-  // Kết hợp nhiều decorator cho một trường:
-
-  // 1. @IsNotEmpty: Đảm bảo người dùng không gửi chuỗi rỗng "" hoặc null/undefined.
+  // --- VALIDATE PASSWORD ---
+  // Có thể áp dụng nhiều decorator lên cùng một trường. Chúng sẽ chạy tuần tự.
+  
+  // 1. @IsNotEmpty: Chặn trường hợp gửi chuỗi rỗng "" hoặc null.
+  // Đảm bảo user bắt buộc phải nhập gì đó.
   @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
 
-  // 2. @MinLength: Đảm bảo độ dài tối thiểu là 6 ký tự.
-  // Đây là lớp bảo mật cơ bản để tránh user đặt mật khẩu quá yếu.
+  // 2. @MinLength: Quy định độ dài tối thiểu.
+  // Đây là lớp bảo vệ cơ bản. Nếu muốn mạnh hơn (phải có chữ hoa, số...), 
+  // bạn có thể dùng thêm @Matches(/regex/) sau này.
   @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' })
   password: string;
 }
