@@ -17,7 +17,6 @@ import { EditProfileDialog } from "@/components/EditProfileDialog";
 export default function Home() {
   const logout = useAuthStore((state) => state.logout);
 
-  // useEffect để giả lập việc gọi API lấy dữ liệu người dùng khi component được mount
   const {
     data: userData,
     isLoading,
