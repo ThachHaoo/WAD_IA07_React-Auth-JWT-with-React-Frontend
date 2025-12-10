@@ -8,8 +8,10 @@ import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 // Import component hiển thị thông báo (toast) từ thư viện sonner
 import { Toaster } from "@/components/ui/sonner";
+// Import các component bảo vệ Route (HOC - Higher Order Components)
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PublicRoute } from "@/components/PublicRoute";
+// Import Store quản lý trạng thái đăng nhập (Zustand)
 import { useAuthStore } from "@/stores/useAuthStore";
 
 // Import và cấu hình TanStack Query (React Query) để quản lý state từ server
@@ -17,47 +19,67 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./api/queryClient";
 
 function App() {
-  // Lấy hàm logout từ store
+  // Lấy state và action từ Zustand Store
   const logout = useAuthStore((state) => state.logout);
   const { isAuthenticated, login } = useAuthStore();
+
+  // --- 1. CƠ CHẾ SILENT REFRESH (Làm mới token ngầm) ---
   useEffect(() => {
+    // Nếu chưa đăng nhập thì không cần chạy logic này
     if (!isAuthenticated) return;
 
     // Hàm gọi refresh token chủ động
     const silentRefresh = async () => {
       try {
+        // Gọi API Refresh Token (Backend sẽ check Cookie HttpOnly để cấp AccessToken mới)
         const { data } = await axiosClient.post("/auth/refresh");
-        // Cập nhật lại Access Token mới vào kho
-        // Lưu ý: Backend trả về accessToken mới, ta cần cập nhật nó
+
+        // Cập nhật lại Access Token mới vào kho (Store + Storage)
+        // Kiểm tra xem user trước đó chọn "Ghi nhớ đăng nhập" (LocalStorage) hay không
         const isRemembered = !!localStorage.getItem("accessToken");
-        login(data.accessToken, null, isRemembered); // null vì refresh token nằm trong cookie rồi
-        console.log("🔄 Silent Refresh thành công!");
+
+        // Gọi hàm login để update state trong store.
+        // Tham số thứ 2 là null vì thường API refresh chỉ trả về token, không trả về full user info.
+        login(data.accessToken, null, isRemembered);
+        console.log(
+          "🔄 Silent Refresh thành công! Token mới đã được cập nhật."
+        );
       } catch (error) {
-        console.log("Silent Refresh lỗi (có thể do hết hạn cookie)", error);
+        console.log(
+          "Silent Refresh lỗi (có thể do hết hạn cookie hoặc mạng)",
+          error
+        );
+        // Tùy chọn: Có thể gọi logout() ở đây nếu muốn chặt chẽ
       }
     };
 
-    // Thiết lập Interval: Gọi mỗi 9 giây (vì Access Token sống 10s)
-    // Trong thực tế nếu Access Token sống 15p, bạn nên để khoảng 14p (14 * 60 * 1000)
+    // Thiết lập Interval: Tự động chạy hàm refresh định kỳ.
+    // Logic: Access Token sống 10s -> Ta gọi refresh mỗi 9s.
+    // -> Mục đích: Luôn đảm bảo user có token mới TRƯỚC KHI token cũ hết hạn.
+    // (Trong thực tế: Nếu Token sống 15 phút, bạn nên để interval khoảng 14 phút).
     const intervalId = setInterval(silentRefresh, 9000);
 
-    return () => clearInterval(intervalId); // Dọn dẹp khi unmount
+    // Cleanup function: Xóa interval khi component App bị hủy (unmount) hoặc khi user logout.
+    // Giúp tránh rò rỉ bộ nhớ (memory leak).
+    return () => clearInterval(intervalId);
   }, [isAuthenticated, login]);
 
+  // --- 2. CƠ CHẾ ĐỒNG BỘ ĐĂNG XUẤT GIỮA CÁC TAB ---
   useEffect(() => {
-    // Hàm xử lý khi Storage thay đổi (ở tab khác)
+    // Hàm xử lý khi Storage thay đổi (Sự kiện này chỉ kích hoạt ở các tab KHÁC tab hiện tại)
     const handleStorageChange = (event) => {
-      // Nếu key bị thay đổi là "accessToken" và giá trị mới là null (tức là bị xóa)
+      // Nếu key bị thay đổi là "accessToken" và giá trị mới là null
+      // -> Nghĩa là user đã bấm "Đăng xuất" ở một tab khác.
       if (event.key === "accessToken" && event.newValue === null) {
         console.log("Đã đăng xuất từ tab khác -> Đăng xuất tab này luôn.");
-        logout(); // Gọi hàm logout để cập nhật state của tab hiện tại
+        logout(); // Gọi hàm logout để cập nhật state của tab hiện tại về trạng thái chưa đăng nhập.
       }
     };
 
-    // Đăng ký lắng nghe sự kiện
+    // Đăng ký lắng nghe sự kiện 'storage' của trình duyệt
     window.addEventListener("storage", handleStorageChange);
 
-    // Dọn dẹp khi component unmount
+    // Dọn dẹp listener khi component unmount
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
@@ -69,7 +91,9 @@ function App() {
       <div className="min-h-screen bg-gray-100">
         {/* Container chứa các Route */}
         <Routes>
-          {/* 🔒 BẢO VỆ: Phải đăng nhập mới vào được Home */}
+          {/* --- PROTECTED ROUTE (Cần đăng nhập) ---
+              Nếu chưa login mà cố vào -> Bị đá về /login 
+          */}
           <Route
             path="/"
             element={
@@ -79,7 +103,10 @@ function App() {
             }
           />
 
-          {/* 🔓 CÔNG KHAI: Đã đăng nhập thì không vào đây nữa */}
+          {/* --- PUBLIC ROUTE (Chỉ cho khách) ---
+              Nếu đã login mà cố vào /login -> Bị đá về Home (/)
+              Giúp trải nghiệm user tốt hơn, không bị kẹt ở trang login khi đã đăng nhập rồi.
+          */}
           <Route
             path="/login"
             element={
@@ -89,7 +116,6 @@ function App() {
             }
           />
 
-          {/* Register cũng nên dùng PublicRoute để user đã login không cần đkí lại */}
           <Route
             path="/register"
             element={
@@ -99,13 +125,11 @@ function App() {
             }
           />
 
+          {/* Trang 404 cho các đường dẫn không xác định */}
           <Route path="*" element={<NotFound />} />
         </Routes>
 
-        {/* Component Toaster đặt ở cấp cao nhất để thông báo có thể hiển thị đè lên mọi nội dung.
-            - richColors: Tự động tô màu xanh/đỏ/vàng tùy theo loại thông báo (success/error/warning).
-            - position: Vị trí xuất hiện thông báo (trên cùng, giữa).
-        */}
+        {/* Component Toaster: Hiển thị thông báo (popup) ở góc trên cùng */}
         <Toaster richColors position="top-center" />
       </div>
     </QueryClientProvider>
